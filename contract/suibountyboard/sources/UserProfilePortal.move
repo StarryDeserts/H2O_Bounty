@@ -4,7 +4,8 @@ use sui::event;
 use sui::clock::{Self, Clock};
 use sui::table::{Self, Table};
 
-const ErrUserProfileNotFound: u64 = 1;
+const ERR_USER_PROFILE_NOT_FOUND: u64 = 1; // 用户档案不存在
+const ERR_USER_PROFILE_ALREADY_EXISTS: u64 = 2; // 用户档案已存在
 
 // 用户档案一次性见证
 public struct USERPROFILEPORTAL has drop {}
@@ -29,53 +30,6 @@ public struct UserProfilePortal has key, store {
     user_addresses: vector<address>, // 用户地址列表
 }
 
-// 创建新的用户档案
-public entry fun create_user_profile(
-    portal: &mut UserProfilePortal,
-    username: String,
-    email: String,
-    role: String,
-    bio: String,
-    user_address: address,
-    clock: &Clock,
-    ctx: &mut TxContext
-) {
-    let user_profile = UserProfile {
-        id: object::new(ctx),
-        username,
-        email,
-        role,
-        bio,
-        user_address,
-        created_boards: vector::empty<ID>(),
-        join_boards: vector::empty<ID>(),
-        created_at: clock::timestamp_ms(clock),
-    };
-    portal.user_profiles.add(user_address, user_profile);
-    portal.user_addresses.push_back(user_address);
-
-    // 触发用户档案创建事件
-    let userprofile_created_event = UserProfileCreatedEvent {
-        username,
-        email,
-        role,
-        bio,
-        user_address,
-        created_at: clock::timestamp_ms(clock),
-    };
-    event::emit(userprofile_created_event);
-}
-
-// 用户档案创建事件
-public struct UserProfileCreatedEvent has copy, drop {
-    username: String,
-    email: String,
-    role: String,
-    bio: String,
-    user_address: address,
-    created_at: u64,
-}
-
 // 初始化用户档案门户
 fun init(otw: USERPROFILEPORTAL, ctx: &mut TxContext) {
     // 发布者地址
@@ -94,6 +48,55 @@ fun init(otw: USERPROFILEPORTAL, ctx: &mut TxContext) {
     transfer::public_share_object(user_profile_portal);
 }
 
+// 创建新的用户档案
+public entry fun create_user_profile(
+    portal: &mut UserProfilePortal,
+    username: String,
+    email: String,
+    role: String,
+    bio: String,
+    clock: &Clock,
+    ctx: &mut TxContext
+) {
+    // 检查用户档案是否已存在
+    assert!(!table::contains(&portal.user_profiles, ctx.sender()), ERR_USER_PROFILE_ALREADY_EXISTS);
+    // 创建新的用户档案
+    let user_profile = UserProfile {
+        id: object::new(ctx),
+        username,
+        email,
+        role,
+        bio,
+        user_address: ctx.sender(),
+        created_boards: vector::empty<ID>(),
+        join_boards: vector::empty<ID>(),
+        created_at: clock::timestamp_ms(clock),
+    };
+    portal.user_profiles.add(ctx.sender(), user_profile);
+    portal.user_addresses.push_back(ctx.sender());
+
+    // 触发用户档案创建事件
+    let userprofile_created_event = UserProfileCreatedEvent {
+        username,
+        email,
+        role,
+        bio,
+        user_address: ctx.sender(),
+        created_at: clock::timestamp_ms(clock),
+    };
+    event::emit(userprofile_created_event);
+}
+
+// 用户档案创建事件
+public struct UserProfileCreatedEvent has copy, drop {
+    username: String,
+    email: String,
+    role: String,
+    bio: String,
+    user_address: address,
+    created_at: u64,
+}
+
 // 更新用户档案的基本信息
 public entry fun update_user_profile(
     portal: &mut UserProfilePortal,
@@ -106,7 +109,7 @@ public entry fun update_user_profile(
     let profiles = &mut portal.user_profiles;
 
     // 检查用户档案是否存在
-    assert!(table::contains(profiles, user), ErrUserProfileNotFound);
+    assert!(table::contains(profiles, user), ERR_USER_PROFILE_NOT_FOUND);
 
     // 更新用户档案
     let profile = table::borrow_mut(profiles, user);
@@ -149,7 +152,7 @@ public(package) fun update_user_profile_on_board_created(
 ) {
     let profiles = &mut portal.user_profiles;
     // 检查用户档案是否存在
-    assert!(table::contains(profiles, user), ErrUserProfileNotFound);
+    assert!(table::contains(profiles, user), ERR_USER_PROFILE_NOT_FOUND);
     // 更新用户档案
     let profile = table::borrow_mut(profiles, user);
     // 将赏金板 ID 添加到用户档案的创建的赏金板列表中
@@ -164,7 +167,7 @@ public(package) fun update_user_profile_on_board_joined(
 ) {
     let profiles = &mut portal.user_profiles;
     // 检查用户档案是否存在
-    assert!(table::contains(profiles, user), ErrUserProfileNotFound);
+    assert!(table::contains(profiles, user), ERR_USER_PROFILE_NOT_FOUND);
     // 更新用户档案
     let profile = table::borrow_mut(profiles, user);
     // 将赏金板 ID 添加到用户档案的加入的赏金板列表中
@@ -179,7 +182,7 @@ public fun get_user_profile(
     user: address
 ): &UserProfile {
     let profiles = &portal.user_profiles;
-    assert!(table::contains(profiles, user), ErrUserProfileNotFound);
+    assert!(table::contains(profiles, user), ERR_USER_PROFILE_NOT_FOUND);
     table::borrow(profiles, user)
 }
 
@@ -196,7 +199,7 @@ public fun get_user_created_boards(
     user: address
 ): &vector<ID>  {
     let profiles = &portal.user_profiles;
-    assert!(table::contains(profiles, user), ErrUserProfileNotFound);
+    assert!(table::contains(profiles, user), ERR_USER_PROFILE_NOT_FOUND);
     let profile = table::borrow(profiles, user);
     &profile.created_boards
 }
@@ -207,7 +210,7 @@ public fun get_user_joined_boards(
     user: address
 ): &vector<ID>  {
     let profiles = &portal.user_profiles;
-    assert!(table::contains(profiles, user), ErrUserProfileNotFound);
+    assert!(table::contains(profiles, user), ERR_USER_PROFILE_NOT_FOUND);
     let profile = table::borrow(profiles, user);
     &profile.join_boards
 }
