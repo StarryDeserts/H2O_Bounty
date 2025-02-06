@@ -207,26 +207,6 @@ public struct BoardUpdatedBasicInfoEvent<phantom T> has copy, drop {
 }
 
 
-// 取出 Board 中剩余的奖励代币并将其关闭
-#[allow(lint(self_transfer))]
-public entry fun withdraw_reward_token_and_close_board<T>(
-    creator_cap: &CreatorCap, // 板块创建者权限
-    board: &mut Board<T>, // 板块
-    ctx: &mut TxContext
-){
-    // 1. 检查该 Board 是否已关闭 && 对该调用者的当前权限进行验证
-    assert!(board.closed == false, ERR_BOARD_IS_CLOSE);
-    assert!(creator_cap.board_id == object::id(board), ERR_BOARD_NO_PERMISSION);
-    // 2. Board 中的奖励代币是否还有剩余
-    if (board.reward_token.value() > 0) {
-        // 2.1 拿出 Board中的余额并发送个调用者
-        let remaining_balance = coin::take(&mut board.reward_token, board.total_pledged, ctx);
-        transfer::public_transfer(remaining_balance, ctx.sender());
-    };
-    // 3. 关闭 Board
-    board.closed = true;
-}
-
 // 向 Board 中加入更多奖励代币
 public entry fun add_reward_token<T>(
     creator_cap: &CreatorCap, // 板块创建者权限
@@ -289,29 +269,25 @@ public struct BoardMemberJoinedEvent has copy, drop {
     joined_at: u64, // 成员加入时间
 }
 
-// 关闭 Board
-public entry fun close_board<T>(
+
+// 取出 Board 中剩余的奖励代币并将其关闭
+#[allow(lint(self_transfer))]
+public entry fun withdraw_reward_token_and_close_board<T>(
     creator_cap: &CreatorCap, // 板块创建者权限
     board: &mut Board<T>, // 板块
-    clock: &Clock
-) {
+    ctx: &mut TxContext
+){
     // 1. 检查该 Board 是否已关闭 && 对该调用者的当前权限进行验证
     assert!(board.closed == false, ERR_BOARD_IS_CLOSE);
     assert!(creator_cap.board_id == object::id(board), ERR_BOARD_NO_PERMISSION);
-    // 2. 关闭 Board
-    board.closed = true;
-    // 3. 触发 Board 关闭事件
-    let board_closed_event = BoardClosedEvent {
-        board_id: object::id(board),
-        closed_at: clock::timestamp_ms(clock),
+    // 2. Board 中的奖励代币是否还有剩余
+    if (board.reward_token.value() > 0) {
+        // 2.1 拿出 Board中的余额并发送个调用者
+        let remaining_balance = coin::take(&mut board.reward_token, board.total_pledged, ctx);
+        transfer::public_transfer(remaining_balance, ctx.sender());
     };
-    event::emit(board_closed_event);
-}
-
-// Board 关闭事件
-public struct BoardClosedEvent has copy, drop {
-    board_id: ID, // 板块ID
-    closed_at: u64, // 板块关闭时间
+    // 3. 关闭 Board
+    board.closed = true;
 }
 
 /*------Task 模块------*/
