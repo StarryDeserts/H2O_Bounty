@@ -31,12 +31,6 @@ const ERR_MAX_COMPLETIONS_REACHED: u64 = 11; // 最大完成次数已达到
 const ERR_REWARD_OVERFLOW_POOL: u64 = 12; // 奖励金额超过奖池
 const ERR_REVIEWER_EXIST: u64 = 13; // 审核者已存在于当前 Task 中
 
-// BountyBoard 一次性见证
-public struct BOUNTYBOARD has drop {}
-
-// BountyBoard 的管理员权限结构
-// TODO: 是否真的需要项目方权限（存疑）
-public struct ManagerCap has key, store { id: UID }
 
 // Board 的创建者权限结构
 public struct CreatorCap has key, store {
@@ -78,20 +72,6 @@ public struct Board<phantom T> has key, store {
     closed: bool, // 板块是否已关闭
 }
 
-// 初始化
-fun init(otw: BOUNTYBOARD, ctx:&mut TxContext) {
-    // 发布者地址
-    let publisher_address = ctx.sender();
-    // 发布者声明，一次性见证
-    let publisher = sui::package::claim(otw, ctx);
-    // 创建 BountyBoard 的管理员权限
-    let manager_cap = ManagerCap { id: object::new(ctx) };
-
-    // 将发布的一次性见证转移发布者
-    transfer::public_transfer(publisher, publisher_address);
-    // 授予发布者管理员权限
-    transfer::public_transfer(manager_cap, publisher_address);
-}
 
 /*------Board 模块------*/
 
@@ -138,6 +118,7 @@ public entry fun create_board<T>(
 
     // 6. 触发 Board 创建事件
     let board_created_event = BoardCreatedEvent<T> {
+        board_id: object::id(&board),
         name: board.name,
         description: board.description,
         creator: board.creator,
@@ -153,6 +134,7 @@ public entry fun create_board<T>(
 
 // 创建 Board 的事件结构
 public struct BoardCreatedEvent<phantom T> has copy, drop {
+    board_id: ID, // 板块ID
     name: String, // 板块名称
     description: String, // 板块描述
     creator: address, // 板块创建者
