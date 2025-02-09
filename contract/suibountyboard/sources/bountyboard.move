@@ -32,12 +32,6 @@ const ERR_REWARD_OVERFLOW_POOL: u64 = 12; // 奖励金额超过奖池
 const ERR_REVIEWER_EXIST: u64 = 13; // 审核者已存在于当前 Task 中
 
 
-// Board 的创建者权限结构
-public struct CreatorCap has key, store {
-    id: UID,
-    board_id: ID,
-}
-
 // Task的结构
 public struct Task has key, store {
     id: UID, // 任务ID
@@ -104,19 +98,13 @@ public entry fun create_board<T>(
     // 2. 创建者自动成为成员
     vector::push_back(&mut board.members, ctx.sender());
 
-    // 3. 授予创建者创建者权限
-    let creator_cap = CreatorCap {
-        id: object::new(ctx),
-        board_id: object::id(&board),
-    };
-    transfer::public_transfer(creator_cap, board.creator);
-    //4. 将传进来的余额放入 Board中
+    // 3. 将传进来的余额放入 Board中
     coin::put(&mut board.reward_token, coinType);
 
-    // 5. 更新用户的个人信息
+    // 4. 更新用户的个人信息
     update_user_profile_on_board_created(portal, board.creator, object::id(&board));
 
-    // 6. 触发 Board 创建事件
+    // 5. 触发 Board 创建事件
     let board_created_event = BoardCreatedEvent<T> {
         board_id: object::id(&board),
         name: board.name,
@@ -128,7 +116,7 @@ public entry fun create_board<T>(
     };
     event::emit(board_created_event);
 
-    // 7. 将创建好的 Board
+    // 6. 将创建好的 Board
     transfer::public_share_object(board);
 }
 
@@ -145,16 +133,16 @@ public struct BoardCreatedEvent<phantom T> has copy, drop {
 
 // 更新 Board 的基础信息
 public entry fun update_board_basic_info<T>(
-    creator_cap: &CreatorCap, // 板块创建者权限
     board: &mut Board<T>, // 板块
     new_board_name: Option<String>, // 新板块名称
     new_board_description: Option<String>, // 新板块描述
     new_img_url: Option<String>, // 新板块图片
-    clock: &Clock
+    clock: &Clock,
+    ctx: &mut TxContext
 ) {
     // 1. 检查该 Board 是否已关闭 && 对该调用者的当前权限进行验证
     assert!(board.closed == false, ERR_BOARD_IS_CLOSE);
-    assert!(creator_cap.board_id == object::id(board), ERR_BOARD_NO_PERMISSION);
+    assert!(board.creator == ctx.sender(), ERR_BOARD_NO_PERMISSION);
     // 2. 更新 Board 信息
     // 2.1 更新 Board 名称
     if (new_board_name.is_some()) {
@@ -191,13 +179,13 @@ public struct BoardUpdatedBasicInfoEvent<phantom T> has copy, drop {
 
 // 向 Board 中加入更多奖励代币
 public entry fun add_reward_token<T>(
-    creator_cap: &CreatorCap, // 板块创建者权限
     board: &mut Board<T>, // 板块
     coin: Coin<T>, // 传入的奖励代币
+    ctx: &mut TxContext
 ) {
     // 1. 检查该 Board 是否已关闭 && 对该调用者的当前权限进行验证
     assert!(board.closed == false, ERR_BOARD_IS_CLOSE);
-    assert!(creator_cap.board_id == object::id(board), ERR_BOARD_NO_PERMISSION);
+    assert!(board.creator == ctx.sender(), ERR_BOARD_NO_PERMISSION);
     // 2. 将传入的奖励代币放入 Board 中
     let amount = coin.value();
     coin::put(&mut board.reward_token, coin);
@@ -255,13 +243,12 @@ public struct BoardMemberJoinedEvent has copy, drop {
 // 取出 Board 中剩余的奖励代币并将其关闭
 #[allow(lint(self_transfer))]
 public entry fun withdraw_reward_token_and_close_board<T>(
-    creator_cap: &CreatorCap, // 板块创建者权限
     board: &mut Board<T>, // 板块
     ctx: &mut TxContext
 ){
     // 1. 检查该 Board 是否已关闭 && 对该调用者的当前权限进行验证
     assert!(board.closed == false, ERR_BOARD_IS_CLOSE);
-    assert!(creator_cap.board_id == object::id(board), ERR_BOARD_NO_PERMISSION);
+    assert!(board.creator == ctx.sender(), ERR_BOARD_NO_PERMISSION);
     // 2. Board 中的奖励代币是否还有剩余
     if (board.reward_token.value() > 0) {
         // 2.1 拿出 Board中的余额并发送个调用者
@@ -276,7 +263,6 @@ public entry fun withdraw_reward_token_and_close_board<T>(
 
 // 创建 Task
 public entry fun create_task<T>(
-    creator_cap: &CreatorCap, // 板块创建者权限
     board: &mut Board<T>, // 板块
     task_name: String, // 任务名称
     task_description: String, // 任务描述
@@ -291,7 +277,7 @@ public entry fun create_task<T>(
 ) {
     // 1. 检查该 Board 是否已关闭 && 对该调用者的当前权限进行验证
     assert!(board.closed == false, ERR_BOARD_IS_CLOSE);
-    assert!(creator_cap.board_id == object::id(board), ERR_BOARD_NO_PERMISSION);
+    assert!(board.creator == ctx.sender(), ERR_BOARD_NO_PERMISSION);
     // 2. 创建 Task
     // 2.1 验证 maxCompletions 的值
     if (maxCompletions <= 0) {
@@ -353,7 +339,6 @@ public struct TaskCreatedEvent has copy, drop {
 
 // 更新 Task
 public entry fun update_task<T>(
-    creator_cap: &CreatorCap, // 板块创建者权限
     board: &mut Board<T>, // 板块
     task_id: address, // 任务ID
     new_task_name: Option<String>, // 新任务名称
@@ -363,11 +348,12 @@ public entry fun update_task<T>(
     new_rewardAmount: Option<u64>, // 新任务奖励金额
     new_allowSelfCheck: Option<bool>, // 是否允许自检
     new_config: Option<String>, // 新任务配置
-    clock: &Clock
+    clock: &Clock,
+    ctx: &mut TxContext
 ) {
     // 1. 检查该 Board 是否已关闭 && 对该调用者的当前权限进行验证
     assert!(board.closed == false, ERR_BOARD_IS_CLOSE);
-    assert!(creator_cap.board_id == object::id(board), ERR_BOARD_NO_PERMISSION);
+    assert!(board.creator == ctx.sender(), ERR_BOARD_NO_PERMISSION);
     // 2. 获取 Task
     let task = table::borrow_mut(&mut board.tasks, task_id);
     // 3. 更新 Task 信息
@@ -417,13 +403,13 @@ public struct TaskUpdatedEvent has copy, drop {
 
 // 取消 Task
 public entry fun cancel_task<T>(
-    creator_cap: &CreatorCap, // 板块创建者权限
     board: &mut Board<T>, // 板块
-    task_id: address // 任务ID
+    task_id: address, // 任务ID
+    ctx: &mut TxContext
 ) {
     // 1. 检查该 Board 是否已关闭 && 对该调用者的当前权限进行验证
     assert!(board.closed == false, ERR_BOARD_IS_CLOSE);
-    assert!(creator_cap.board_id == object::id(board), ERR_BOARD_NO_PERMISSION);
+    assert!(board.creator == ctx.sender(), ERR_BOARD_NO_PERMISSION);
     // 2. 获取 Task
     let task = table::borrow_mut(&mut board.tasks, task_id);
     // 3. 取消 Task
@@ -679,14 +665,14 @@ public struct RewardDistributedEvent has copy, drop {
 
 // board 的创建者为自己的 board 中的 Task 加入审核者的方法
 public entry fun add_reviewer<T>(
-    creator_cap: &CreatorCap, // 板块创建者权限
     board: &mut Board<T>, // 板块
     task_id: address, // 任务ID
-    reviewer: vector<address> // 审核者
+    reviewer: vector<address>, // 审核者
+    ctx: &mut TxContext
 ) {
     // 1. 检查该 Board 是否已关闭 && 对该调用者的当前权限进行验证
     assert!(board.closed == false, ERR_BOARD_IS_CLOSE);
-    assert!(creator_cap.board_id == object::id(board), ERR_BOARD_NO_PERMISSION);
+    assert!(board.creator == ctx.sender(), ERR_BOARD_NO_PERMISSION);
     // 2. 获取 Task && 定义一个 Board ID 的临时变量
     let board_id_temp = object::id(board);
     let task = table::borrow_mut(&mut board.tasks, task_id);
