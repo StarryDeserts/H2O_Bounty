@@ -1,4 +1,4 @@
-# H2O Bounty: Decentralized Bounty Platform on Sui (Enhanced with ElizaBot)# H2O Bounty: Decentralized Bounty Platform on Sui (Enhanced with ElizaBot)
+# H2O Bounty: Decentralized Bounty Platform on Sui (Enhanced with ElizaBot)
 H2O Bounty is a decentralized task ecosystem built on Sui blockchain, where smart contracts meet community engagement. It enables project creators to launch rewarded tasks, while contributors participate in a transparent environment powered by automated workflows.
 
 Key Innovations:
