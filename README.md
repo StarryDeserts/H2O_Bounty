@@ -2,7 +2,6 @@
 H2O Bounty is a decentralized task ecosystem built on Sui blockchain, where smart contracts meet community engagement. It enables project creators to launch rewarded tasks, while contributors participate in a transparent environment powered by automated workflows.
 
 Key Innovations:
-
     - ElizaBot - Your Discord Commander: Every task creation, update, or reward payout triggers real-time announcements in Discord. ElizaBot keeps your community aligned with automated notifications and direct action links.
 
     - Dynamic SUI Rewards: Flexible reward pools with features like milestone payouts and auto-refunds. ElizaBot broadcasts every SUI movement with blockchain explorer proofs.(TODO)
