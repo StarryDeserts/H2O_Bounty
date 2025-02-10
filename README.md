@@ -1,12 +1,14 @@
-# H2O Bounty
-H2O Bounty 是构建在 Sui 区块链上的去中心化悬赏平台，实现了高效的任务发布、完成和奖励分发。平台使创建者能够发布带有奖励的任务，参与者可以在一个透明且可信的环境中浏览、完成任务并获得奖励。
+# H2O Bounty: Decentralized Bounty Platform on Sui (Enhanced with ElizaBot)# H2O Bounty: Decentralized Bounty Platform on Sui (Enhanced with ElizaBot)
+H2O Bounty is a decentralized task ecosystem built on Sui blockchain, where smart contracts meet community engagement. It enables project creators to launch rewarded tasks, while contributors participate in a transparent environment powered by automated workflows.
 
-核心特点：
-- 创建和管理可定制的任务板块
-- 支持多人审核和验证流程
-- 灵活的奖励分发系统，支持原生 Sui 代币
-- 完善的用户档案管理
-- 实时任务状态跟踪和更新
-- 透明的审核流程和奖励分发
+Key Innovations:
 
-无论您是寻求众包任务的项目方，还是寻找机会的贡献者，H2O Bounty 都为在 Sui 生态系统中连接人才与机会提供了一个安全高效的平台。
+    ElizaBot - Your Discord Commander: Every task creation, update, or reward payout triggers real-time announcements in Discord. ElizaBot keeps your community aligned with automated notifications and direct action links.
+
+    Dynamic SUI Rewards: Flexible reward pools with features like milestone payouts and auto-refunds. ElizaBot broadcasts every SUI movement with blockchain explorer proofs.(TODO)
+
+    End-to-End Visibility: Track task status from start to finish through ElizaBot's Discord updates, each linked to immutable on-chain records.
+
+    Dev-Centric Toolkit: Access Sui Move contract templates and beginner quests (e.g., "Deploy a Hello World Contract") via ElizaBot commands, earning verifiable on-chain credentials.
+
+For projects seeking efficient crowdsourcing or developers building blockchain-proven portfolios, H2O Bounty – supercharged by ElizaBot's automation – serves as the trustless bridge between Sui opportunities and global talent.
