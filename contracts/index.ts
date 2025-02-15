@@ -5,7 +5,6 @@ import { isValidSuiAddress } from "@mysten/sui/utils";
 import { graphql } from "@mysten/sui/graphql/schemas/latest";
 import {
   SuiObjectResponse,
-  SuiEvent,
   SuiParsedData,
   SuiObjectData,
 } from "@mysten/sui/client";
@@ -76,20 +75,8 @@ export const queryProfile = async (address: string) => {
   if (!isValidSuiAddress(address)) {
     throw new Error("Invalid board address");
   }
-  const profile = await suiClient.getOwnedObjects({
-    owner: address,
-    filter: {
-      StructType: `${networkConfig.devnet.packageID}::${UserProfilePortalModule.MODULE_NAME}::${UserProfilePortalModule.STRUCT.PROFILE}`,
-    },
-  });
-  const profileId = profile.data[0]?.data?.objectId;
-
-  if (profileId == undefined) {
-    throw new Error("Not found profile");
-  }
-  console.log(profileId);
   const profileContent = await suiClient.getObject({
-    id: profileId,
+    id: "0x73333045888b05341ae27cef3656d733a6c136467362b19c2dae0cbb87275eec",
     options: {
       showContent: true,
     },

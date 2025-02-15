@@ -47,15 +47,19 @@ export interface Task {
 }
 
 export type Profile = {
-  id: string;
-  username: string; // 用户名
-  email: string; // 邮箱
-  role: string; // 角色
-  bio: string; // 个人简介
-  user_address: string; // 用户地址
-  created_boards: string[]; // 创建的赏金板列表
-  join_boards: string[]; // 加入的赏金板列表
-  created_at: number; // 创建时间
+  id: { id: string };
+  value: {
+    fields: {
+      username: string; // 用户名
+      email: string; // 邮箱
+      role: string; // 角色
+      bio: string; // 个人简介
+      user_address: string; // 用户地址
+      created_boards: string[]; // 创建的赏金板列表
+      join_boards: string[]; // 加入的赏金板列表
+      created_at: number; // 创建时间
+    };
+  };
 };
 
 export type Submission = {
@@ -67,7 +71,7 @@ export type Submission = {
       submitter: string;
       proof: string;
       status: {
-        variant: string
+        variant: string;
       };
       submitted_at: string;
       review_comment: string;
